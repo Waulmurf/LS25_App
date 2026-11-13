@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hof Koprek Manager</title>
+<style>
+:root{
+  --bg:#f4f1ea; --panel:#fffdf8; --panel2:#f0ebe0; --ink:#26241f; --muted:#6d685c; --line:#ddd5c4;
+  --accent:#2f6b3a; --accent-ink:#fff; --warn:#a4560f; --warn-bg:#fbeedd; --bad:#a3302a; --bad-bg:#f9e3e1;
+  --ok:#2f6b3a; --ok-bg:#e3f0e2; --chip:#ebe5d8; --shadow:0 1px 2px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);
+  --c-K:#b07a1f; --c-WW:#c9a227; --c-WR:#8d7a3c; --c-Z:#a2467a; --c-E:#4f8a3a; --c-ZR:#6b5fa8; --c-SM:#3d7f86; --c-RT:#c0521f; --c-G:#5d8f45; --c-H:#7a7266;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#191a17; --panel:#22231f; --panel2:#2a2b26; --ink:#ebe7dc; --muted:#a39d8f; --line:#3a3a33;
+    --accent:#6fb07a; --accent-ink:#10200f; --warn:#e6a35a; --warn-bg:#3a2b19; --bad:#ec8a83; --bad-bg:#3d2220;
+    --ok:#7cc387; --ok-bg:#1f3322; --chip:#33342d; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#191a17; --panel:#22231f; --panel2:#2a2b26; --ink:#ebe7dc; --muted:#a39d8f; --line:#3a3a33;
+  --accent:#6fb07a; --accent-ink:#10200f; --warn:#e6a35a; --warn-bg:#3a2b19; --bad:#ec8a83; --bad-bg:#3d2220;
+  --ok:#7cc387; --ok-bg:#1f3322; --chip:#33342d; --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,select,input,textarea{font:inherit;color:inherit}
+header.top{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header.top h1{font-size:17px;margin:0;font-weight:650;letter-spacing:.01em}
+header.top .date{font-weight:600;color:var(--accent)}
+header.top .spacer{flex:1}
+nav.tabs{display:flex;gap:4px;padding:8px 16px 0;overflow-x:auto;border-bottom:1px solid var(--line);background:var(--panel)}
+nav.tabs button{border:0;background:none;padding:8px 12px;border-bottom:2px solid transparent;cursor:pointer;color:var(--muted);white-space:nowrap}
+nav.tabs button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+main{max-width:1180px;margin:0 auto;padding:16px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:15px;margin:0 0 10px;font-weight:650}
+.card h3{font-size:14px;margin:14px 0 6px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.btn{border:1px solid var(--line);background:var(--panel2);padding:6px 11px;border-radius:7px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.small{padding:3px 8px;font-size:13px}
+.btn.danger{color:var(--bad)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:999px;background:var(--chip);font-size:12.5px;border:1px solid transparent;white-space:nowrap}
+.chip .dot{width:8px;height:8px;border-radius:50%}
+button.chip{cursor:pointer}
+.chip.done{text-decoration:line-through;opacity:.55}
+.chip.rt{border-color:var(--c-RT)}
+.tag{font-size:11.5px;padding:1px 6px;border-radius:5px;background:var(--chip);color:var(--muted);white-space:nowrap}
+.tag.lu{background:#e6effa;color:#24508a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tag.lu{background:#1f2c3d;color:#9cc0ec}}
+:root[data-theme="dark"] .tag.lu{background:#1f2c3d;color:#9cc0ec}
+.tag.frist{background:var(--bad-bg);color:var(--bad);font-weight:600}
+.tag.auto{background:var(--ok-bg);color:var(--ok)}
+.tag.fungi{background:var(--warn-bg);color:var(--warn)}
+.big{font-size:26px;font-weight:700;line-height:1.15}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0}
+.status{padding:2px 8px;border-radius:6px;font-size:13px;font-weight:600;display:inline-block}
+.status.ok{background:var(--ok-bg);color:var(--ok)}
+.status.warn{background:var(--warn-bg);color:var(--warn)}
+.status.bad{background:var(--bad-bg);color:var(--bad)}
+.alert{padding:9px 12px;border-radius:8px;background:var(--warn-bg);color:var(--warn);font-size:14px;margin-bottom:10px}
+.alert.bad{background:var(--bad-bg);color:var(--bad)}
+.alert.ok{background:var(--ok-bg);color:var(--ok)}
+.task{display:grid;grid-template-columns:28px 64px 1fr;gap:4px 8px;padding:9px 4px;border-top:1px solid var(--line);align-items:start}
+.task:first-child{border-top:0}
+.task.noday{grid-template-columns:28px 1fr}
+.task.isdone .ttext{color:var(--muted);text-decoration:line-through}
+.task.now{background:color-mix(in srgb,var(--accent) 7%,transparent);border-radius:6px}
+.task .day{font-weight:600;font-size:13px;color:var(--muted);padding-top:2px}
+.task .chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.task input[type=checkbox]{width:18px;height:18px;margin:2px 0 0;accent-color:var(--accent);cursor:pointer}
+.task .meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;align-items:center}
+.task textarea{width:100%;min-height:52px;margin-top:6px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);padding:6px}
+.linkbtn{background:none;border:0;color:var(--muted);cursor:pointer;font-size:12.5px;padding:0;text-decoration:underline}
+.bar{height:8px;border-radius:5px;background:var(--chip);overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:12.5px;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+.cur{outline:2px solid var(--accent);outline-offset:-2px;border-radius:5px}
+.monthnav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.monthnav .title{font-size:19px;font-weight:700;min-width:220px}
+select,input[type=number],input[type=text]{border:1px solid var(--line);background:var(--panel2);border-radius:6px;padding:5px 7px}
+input[type=number]{width:80px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--muted)}
+.empty{color:var(--muted);padding:14px 4px;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--panel2);padding:8px;border-radius:6px;max-height:320px;overflow:auto}
+details summary{cursor:pointer}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:14px;z-index:20;max-width:92vw}
+@media (max-width:560px){
+  .task{grid-template-columns:26px 1fr}
+  .task .day{grid-column:2}
+  .task .body{grid-column:1 / span 2}
+  .monthnav .title{min-width:0;font-size:17px}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Hof Koprek · Spielstand-Manager</h1>
+  <span class="date" id="hdrDate"></span>
+  <span class="spacer"></span>
+  <span class="muted small" id="hdrSync"></span>
+  <button class="btn primary" data-action="sync">⟳ Synchronisieren</button>
+</header>
+<nav class="tabs" id="tabs"></nav>
+<main id="view"></main>
+<input type="file" id="dirInput" webkitdirectory multiple hidden>
+<input type="file" id="importInput" accept=".json,application/json" hidden>
+
+<script>
+'use strict';
+/* =====================================================================
+   Stammdaten aus dem Betriebskonzept (Stand 13.11.2026)
+   ===================================================================== */
+const CROPS = {
+  K:  {name:'Kartoffel',    spring:true },
+  WW: {name:'Winterweizen', spring:false},
+  Z:  {name:'Zwiebel',      spring:true },
+  E:  {name:'Erbse',        spring:true },
+  WR: {name:'Winterroggen', spring:false},
+  ZR: {name:'Zuckerrübe',   spring:true },
+  SM: {name:'Silomais',     spring:true },
+};
+const LINES = {
+  A: ['K','WW','Z','WR'],
+  B: ['K','WW','E','WR'],
+  C: ['ZR','SM','E','WW'],
+};
+const LINE_INFO = {A:'Linie A · Kartoffel – Weizen – Zwiebel – Roggen', B:'Linie B · Kartoffel – Weizen – Erbse – Roggen', C:'Linie C · Rübe – Mais – Erbse – Weizen'};
+// est = Größe nur geschätzt
+const FIELDS = [
+  {id:79, ha:4.43, line:'A', group:1, dist:0.3},
+  {id:80, ha:5.05, line:'A', group:2, dist:0.5, est:true},
+  {id:7,  ha:2.93, line:'A', group:3, dist:0.5},
+  {id:78, ha:1.79, line:'A', group:4, dist:0.2},
+  {id:90, ha:3.33, line:'A', group:4, dist:0.5, est:true},
+  {id:15, ha:4.33, line:'B', group:1, dist:0.7},
+  {id:88, ha:3.92, line:'B', group:1, dist:0.6},
+  {id:20, ha:3.29, line:'B', group:2, dist:1.2, est:true, lease:true},
+  {id:82, ha:3.67, line:'B', group:2, dist:0.9, lease:true},
+  {id:73, ha:10.28,line:'B', group:3, dist:1.3, est:true, lease:true},
+  {id:27, ha:6.71, line:'B', group:4, dist:1.2, est:true},
+  {id:126,ha:4.67, line:'C', group:1, dist:1.1, est:true, lease:true},
+  {id:72, ha:5.61, line:'C', group:2, dist:1.3},
+  {id:71, ha:4.40, line:'C', group:3, dist:1.3},
+  {id:74, ha:5.76, line:'C', group:4, dist:0.6},
+];
+const SPECIAL = [
+  {id:76, ha:1.6, name:'Hofstelle'},
+  {id:77, ha:2.6, name:'Dauergrünland (Heu)'},
+];
+const RT_DEFAULT = {
+  1:{field:103, ha:5.29, lage:'Nordwesten, 1,3 km'},
+  2:{field:98,  ha:5.20, lage:'Südwesten, 0,8 km'},
+  3:{field:32,  ha:5.04, lage:'Südwesten, 1,4 km'},
+  4:{field:33,  ha:4.99, lage:'Südwesten, 1,5 km (neben 32)'},
+};
+const PLAN_SETTINGS = {dpp:4, econ:'Schwer', stones:false};
+const MONTHS = ['','Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const MONTHS_SHORT = ['','Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const START_ABS = 5; // Saisonjahr 1, August
+
+/* Arbeitskalender. sel = welche Felder:
+   cur:[Früchte]  Felder mit dieser Frucht im Planjahr
+   next:[Früchte] Felder mit dieser Frucht im folgenden Planjahr (Herbstsaat)
+   nextSpring     nur Felder, auf die eine Frühjahrsfrucht folgt
+   notCur         diese aktuellen Früchte ausschließen
+   rt:'cur'|'next' Ringtausch-Feld dieses / des nächsten Planjahrs
+   rtAll          alle Ringtausch-Felder
+   fixed:[ids]    feste Felder
+   allOwn         alle eigenen Ackerfelder
+   nearest        nur das hofnächste Feld
+   place          Ort ohne Feld (Stall, Lager) */
+const T = (id,m,d,text,sel,who='selbst',x={}) => Object.assign({id,m,d,text,sel,who},x);
+const CALENDAR = [
+  T('jan-verkauf',1,[2,2],'Zwiebeln, Weizen, Roggen verkaufen (Preishoch im Januar), Futterroggen zurückhalten',{place:'Lager'},'selbst',{skipPj1:true}),
+  T('jan-werkstatt',1,[3,4],'Werkstatt; Saatgut, Dünger, Herbizid und Fungizid einlagern',null),
+  T('feb-pflanzgut',2,[2,2],'Pflanzkartoffeln in 2.000-l-Kisten bereitstellen',{place:'Lager'}),
+  T('feb-bodenproben',2,[3,3],'Bodenproben (Precision Farming) auf allen Frühjahrsfeldern',{cur:['K','ZR','SM','E','Z'],rt:'cur'}),
+  T('feb-kalk',2,[4,4],'Kalk nach Bodenprobe – nicht vor Kartoffel',{cur:['ZR','SM','E','Z']}),
+  T('mar-guelle',3,[1,1],'Gülle als 1. N-Gabe',{cur:['K','ZR']}),
+  T('mar-n1',3,[1,1],'1. N-Gabe mineralisch',{cur:['WW','WR']}),
+  T('mar-saatbett-k',3,[2,2],'Ölrettich eingrubbern, pflügen, Saatbett',{cur:['K']}),
+  T('mar-legen',3,[3,4],'Kartoffeln legen, eigene Felder (Märzsaat: Ernte ab August, Weizen noch im September)',{cur:['K']}),
+  T('mar-saatbett-zr',3,[3,3],'Ölrettich eingrubbern, Saatbett',{cur:['ZR','Z']}),
+  T('mar-ekorn',3,[4,4],'Einzelkornsaat Zuckerrübe und Zwiebel (Märzsaat: Zwiebel im August reif)',{cur:['ZR','Z']},'LU'),
+  T('apr-erbse',4,[1,1],'Ölrettich eingrubbern, Saatbett, Erbsen säen (letzter Saatmonat)',{cur:['E']},'selbst',{frist:true}),
+  T('apr-rt-legen',4,[1,2],'Ringtausch: Gülle, Ölrettich eingrubbern, pflügen, Kartoffeln legen (Ernte Sep–Okt)',{rt:'cur'}),
+  T('apr-herbizid',4,[2,2],'Herbizid (ein Monat nach der Saat)',{cur:['K','ZR','Z']}),
+  T('apr-n2',4,[2,2],'2. N-Gabe',{cur:['WW','WR']}),
+  T('apr-fungizid-k',4,[3,3],'Fungizid vorbeugend Kartoffel, sobald aufgelaufen',{cur:['K']},'selbst',{fungi:true}),
+  T('apr-guelle-sm',4,[3,3],'Gülle, Ölrettich eingrubbern, Saatbett',{cur:['SM']}),
+  T('apr-mais',4,[4,4],'Einzelkornsaat Silomais (nur April/Mai)',{cur:['SM']},'LU'),
+  T('mai-herb-fung',5,[1,1],'Herbizid, danach Fungizid vorbeugend',{cur:['E'],rt:'cur'},'selbst',{fungi:true}),
+  T('mai-mais-herb',5,[2,2],'Herbizid Mais (Fungizid nur bei Warnung)',{cur:['SM']}),
+  T('mai-n2',5,[3,3],'2. N-Gabe Kartoffel, Rübe, Zwiebel',{cur:['K','ZR','Z'],rt:'cur'}),
+  T('jun-heu',6,[1,3],'Heu: mähen, wenden, schwaden, pressen, einfahren',{fixed:[77]}),
+  T('jul-erbse',7,[1,1],'Erbsen dreschen',{cur:['E']},'LU'),
+  T('jul-roggen',7,[2,2],'Roggen dreschen, rund 1 ha Stroh hofnah liegen lassen',{cur:['WR']},'LU'),
+  T('jul-weizen',7,[3,3],'Weizen dreschen',{cur:['WW']},'LU'),
+  T('jul-stroh',7,[3,3],'Stroh pressen und einfahren (ca. 36.000 l, Kleinballen)',{cur:['WR'],nearest:true}),
+  T('jul-oelrettich',7,[4,4],'Stoppel grubbern, Ölrettich säen',{cur:['WW','WR'],nextSpring:true}),
+  T('aug-zwiebel',8,[1,1],'Zwiebeln roden, in Kisten einlagern',{cur:['Z']}),
+  T('aug-kartoffel',8,[2,4],'Kartoffeln roden, eigene Felder zuerst (dort folgt Weizen)',{cur:['K']}),
+  T('aug-restdrusch',8,[3,3],'Rest-Drusch Getreide (letzter Erntemonat)',null,'LU',{frist:true}),
+  T('aug-rt-neu',8,[4,4],'Neues Ringtausch-Feld übernehmen: grubbern, Ölrettich säen',{rt:'next'},'selbst',{auto:'rtTakeover'}),
+  T('sep-rodung',9,[1,1],'Rodung der eigenen Felder abschließen, damit der Weizen noch im September kommt',{cur:['K']},'selbst',{frist:true}),
+  T('sep-mais',9,[2,2],'Silomais häckseln; abfahren, Silo walzen und abdecken',{cur:['SM']},'LU + selbst'),
+  T('sep-weizen',9,[3,3],'Winterweizen säen',{next:['WW']}),
+  T('sep-roggen',9,[4,4],'Winterroggen säen',{next:['WR']}),
+  T('sep-oelrettich-mais',9,[4,4],'Ölrettich auf Maisstoppel',{cur:['SM']}),
+  T('okt-restsaat',10,[1,1],'Rest-Saat Wintergetreide (letzter Saatmonat)',null,'selbst',{frist:true}),
+  T('okt-ruebe',10,[2,2],'Zuckerrüben roden und abfahren',{cur:['ZR']},'LU'),
+  T('okt-rt-roden',10,[2,4],'Ringtausch-Kartoffeln roden (spätestens Ende Oktober)',{rt:'cur'},'selbst',{frist:true}),
+  T('okt-herb-fung',10,[3,3],'Herbizid, danach Fungizid vorbeugend auf das neue Wintergetreide',{next:['WW','WR']},'selbst',{fungi:true}),
+  T('okt-guelle',10,[4,4],'Gülle vor dem Winter ausbringen (auf Ölrettich)',{nextSpring:true,notCur:['ZR'],rt:'next'}),
+  T('nov-ruebe',11,[1,1],'Rübenrodung abschließen (letzter Monat)',{cur:['ZR']},'LU',{frist:true}),
+  T('nov-rt-rueckgabe',11,[1,1],'Ringtausch-Feld geht an den NPC zurück',{rt:'cur'},'Mod',{auto:'rtReturn'}),
+  T('nov-stoppel',11,[2,2],'Rübenstoppel grubbern (kein Ölrettich, zu spät)',{cur:['ZR']}),
+  T('nov-herde',11,[4,4],'Herde prüfen: Kälber verkaufen oder als Nachzucht behalten',{place:'Stall'}),
+  T('dez-verkauf',12,[2,2],'Kartoffeln, Rüben, Erbsen verkaufen (Preishoch im Dezember), Pflanzgut zurückhalten',{place:'Lager'}),
+  T('dez-wechsel',12,[3,3],'Jahreswechsel: Planjahr +1, Plan im Fruchtfolge-Menü prüfen',null),
+];
+const FEEDING = T('fuetterung',0,[1,1],'Fütterung und Einstreu',{place:'Stall'});
+// Startphase August–Dezember Ingame-Jahr 1: Selektoren beziehen sich auf Planjahr 1
+const START = [
+  T('s-einstellungen',8,[1,1],'Spieleinstellungen: 4 Tage je Monat, Wirtschaft Schwer, Steine aus',null,'selbst',{auto:'settings'}),
+  T('s-felder',8,[1,1],'Ackerfelder leeren: keine Frucht, gegrubbert, unkrautfrei, kein Dünger',{allOwn:true}),
+  T('s-planer',8,[1,1],'„Realistische Fruchtfolge“: je Feld 4-Jahres-Plan + Ölrettich eintragen, alte Historie prüfen',{allOwn:true}),
+  T('s-vertraege',8,[1,1],'Ringtausch-Verträge abschließen (Rotationsjahr 1–4)',{rtAll:true},'selbst',{auto:'contracts'}),
+  T('s-rinder',8,[1,1],'10 Angus-Rinder kaufen; bis zur ersten Ernte Silage, Getreide, Stroh zukaufen',{place:'Stall'},'selbst',{auto:'cattle'}),
+  T('s-oel-k',8,[2,2],'Grubbern, Ölrettich säen (vor Kartoffel)',{cur:['K']}),
+  T('s-heu',8,[2,4],'Grünland mähen und als Heu pressen (Wintervorrat)',{fixed:[77]}),
+  T('s-rt1',8,[2,3],'Ringtausch-Feld nach Übernahme grubbern, Ölrettich säen',{rt:'cur'},'selbst',{auto:'rtTakeover'}),
+  T('s-oel-z-e',8,[3,3],'Grubbern, Ölrettich säen (vor Zwiebel und Erbse)',{cur:['Z','E']}),
+  T('s-oel-zr-sm',8,[4,4],'Grubbern, Ölrettich säen (vor Rübe und Mais)',{cur:['ZR','SM']}),
+  T('s-kalk',9,[1,1],'Kalk auf Felder mit Kalkstufe 0 (88 erst nach der Kartoffel)',{fixed:[27,72,74,82]}),
+  T('s-weizen',9,[2,2],'Grubbern + Winterweizen säen',{cur:['WW']}),
+  T('s-roggen',9,[3,3],'Grubbern + Winterroggen säen',{cur:['WR']}),
+  T('s-restsaat',10,[1,1],'Rest-Saat Weizen/Roggen (letzter Saatmonat)',null,'selbst',{frist:true}),
+  T('s-herb-fung',10,[2,2],'Herbizid, danach Fungizid vorbeugend aufs Wintergetreide',{cur:['WW','WR']},'selbst',{fungi:true}),
+  T('s-silo',10,[3,3],'Fahrsilo am Hof bauen (BunkerSiloModularSet)',{fixed:[76]},'selbst',{auto:'silo'}),
+  T('s-pflanzgut',12,[2,2],'Pflanzgut kaufen: rund 65.000 l für 18 ha (ca. 33 Kisten à 2.000 l)',{place:'Lager'}),
+];
+
+/* =====================================================================
+   Zustand
+   ===================================================================== */
+const STORE_KEY = 'ls25-hof-koprek-v1';
+const defaultState = () => ({
+  v:1,
+  game:{year:1, month:8, day:1, dpp:4},
+  monthOffset:0,
+  rt:JSON.parse(JSON.stringify(RT_DEFAULT)),
+  haOverride:{},
+  done:{}, notes:{}, custom:[],
+  sync:null,
+  ui:{tab:'dash', viewAbs:null},
+});
+let state = load();
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(STORE_KEY));
+    if(s && s.v===1) return Object.assign(defaultState(), s);
+  }catch(e){}
+  return defaultState();
+}
+function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){ toast('Speichern im Browser fehlgeschlagen – bitte als JSON sichern.'); } }
+
+/* =====================================================================
+   Zeitrechnung
+   Das FS-Jahr beginnt im März: Januar/Februar gehören noch zum laufenden Jahr.
+   abs = (Jahr-1)*12 + Index (März=0 … Februar=11).
+   Planjahr = Jahr-1 von März bis Dezember; Januar/Februar bereiten schon das
+   nächste Planjahr vor (Planjahr = Jahr).
+   ===================================================================== */
+const mIdx = m => (m+9)%12;
+const toAbs = (year, month) => (year-1)*12 + mIdx(month);
+const fromAbs = abs => { const sy = Math.floor(abs/12)+1, mi = ((abs%12)+12)%12; const month = (mi+2)%12+1; return {sy, month, year: sy, pj: month<=2 ? sy : sy-1}; };
+const step = pj => (((pj-1)%4)+4)%4+1;
+const nowAbs = () => toAbs(state.game.year, state.game.month);
+const planDay = () => { const {day,dpp} = state.game; return dpp===4 ? day : Math.min(4, Math.max(1, Math.ceil(day*4/dpp))); };
+const dayLabel = d => d[0]===d[1] ? 'T'+d[0] : 'T'+d[0]+'–'+d[1];
+const fmtDate = (g=state.game) => `${MONTHS[g.month]} · T${g.day}${g.dpp!==4?'/'+g.dpp:''} · Jahr ${g.year}`;
+function pjLabel(abs){
+  const {pj} = fromAbs(abs);
+  if(abs < START_ABS) return 'vor Planstart';
+  if(pj===0) return 'Startphase (bereitet Planjahr 1 vor)';
+  return `Planjahr ${pj} · Schritt ${step(pj)} von 4`;
+}
+
+/* =====================================================================
+   Felder & Fruchtfolge
+   ===================================================================== */
+const fieldHa = f => state.haOverride[f.id] ?? f.ha;
+function cropOf(f, pj){ if(pj<1) return null; return LINES[f.line][(f.group-1 + pj-1)%4]; }
+function rtSlot(pj){ return state.rt[step(pj)]; }
+const ownIds = new Set([...FIELDS.map(f=>f.id), ...SPECIAL.map(f=>f.id)]);
+const fieldById = id => FIELDS.find(f=>f.id===id);
+
+function resolveSel(sel, pj){
+  if(!sel) return [];
+  if(sel.place) return [{place:sel.place}];
+  const out = [];
+  if(sel.fixed) sel.fixed.forEach(id=>{ const f = fieldById(id) || SPECIAL.find(s=>s.id===id); out.push({id, ha: f ? (fieldById(id)?fieldHa(f):f.ha) : null, crop: f && f.line ? cropOf(f,pj) : null}); });
+  if(sel.allOwn) FIELDS.forEach(f=>out.push({id:f.id, ha:fieldHa(f), crop:cropOf(f,pj)}));
+  if(sel.cur || sel.next || sel.nextSpring){
+    let list = FIELDS.slice();
+    if(sel.cur) list = list.filter(f=>sel.cur.includes(cropOf(f,pj)));
+    if(sel.next) list = list.filter(f=>sel.next.includes(cropOf(f,pj+1)));
+    if(sel.nextSpring) list = list.filter(f=>CROPS[cropOf(f,pj+1)].spring);
+    if(sel.notCur) list = list.filter(f=>!sel.notCur.includes(cropOf(f,pj)));
+    if(sel.nearest && list.length) list = [list.slice().sort((a,b)=>a.dist-b.dist)[0]];
+    list.forEach(f=>out.push({id:f.id, ha:fieldHa(f), crop: sel.next ? cropOf(f,pj+1) : cropOf(f,pj)}));
+  }
+  if(sel.rt){ const s = rtSlot(sel.rt==='next' ? pj+1 : pj); if(s && s.field) out.push({id:s.field, ha:s.ha, crop:'K', rt:true}); }
+  if(sel.rtAll) [1,2,3,4].forEach(k=>{ const s = state.rt[k]; if(s && s.field) out.push({id:s.field, ha:s.ha, crop:'K', rt:true, rtYear:k}); });
+  return out;
+}
+
+/* Aufgaben eines Monats (abs) */
+function tasksFor(abs){
+  if(abs < START_ABS) return [];
+  const {sy, month, pj} = fromAbs(abs);
+  const list = [];
+  if(sy===1 && month>=8){
+    START.filter(t=>t.m===month).forEach(t=>list.push(mk(t, abs, resolveSel(t.sel, 1))));
+    if(month>=9) list.push(mk(Object.assign({},FEEDING,{m:month}), abs, resolveSel(FEEDING.sel,1)));
+  } else {
+    list.push(mk(Object.assign({},FEEDING,{m:month}), abs, resolveSel(FEEDING.sel,pj)));
+    CALENDAR.filter(t=>t.m===month && !(t.skipPj1 && pj===1)).forEach(t=>list.push(mk(t, abs, resolveSel(t.sel, pj))));
+  }
+  state.custom.filter(c=> (c.repeat ? c.month===month && abs>=START_ABS : c.abs===abs)).forEach(c=>{
+    list.push(mk({id:'c-'+c.id, m:month, d:[c.day,c.day], text:c.text, who:c.who||'selbst', custom:c}, abs, (c.fields||[]).map(id=>({id, ha:(fieldById(id)?fieldHa(fieldById(id)):null), crop: fieldById(id)?cropOf(fieldById(id), Math.max(1,pj)):null, rt:!ownIds.has(id)}))));
+  });
+  list.sort((a,b)=>a.d[0]-b.d[0] || a.d[1]-b.d[1]);
+  return list;
+}
+function mk(t, abs, targets){
+  const fields = targets.filter(x=>x.id!=null);
+  return Object.assign({}, t, {abs, key:abs+'|'+t.id, targets, fields});
+}
+const doneKey = (task, fid) => task.key + '|' + (fid ?? '-');
+function isFieldDone(task, fid){ return !!state.done[doneKey(task,fid)]; }
+function taskProgress(task){
+  if(!task.fields.length) return isFieldDone(task,null) ? [1,1] : [0,1];
+  const n = task.fields.filter(f=>isFieldDone(task,f.id)).length;
+  return [n, task.fields.length];
+}
+const isTaskDone = t => { const [a,b] = taskProgress(t); return a===b; };
+function isAuto(task){
+  if(!task.fields.length) return state.done[doneKey(task,null)]?.auto;
+  return task.fields.some(f=>state.done[doneKey(task,f.id)]?.auto);
+}
+function overdueTasks(){
+  const now = nowAbs(), pd = planDay(), out = [];
+  for(let a = START_ABS; a <= now; a++){
+    tasksFor(a).forEach(t=>{ if(isTaskDone(t)) return; if(a<now || t.d[1] < pd) out.push(t); });
+  }
+  return out;
+}
+
+/* =====================================================================
+   Rendering
+   ===================================================================== */
+const TABS = [['dash','Übersicht'],['work','Arbeit'],['fields','Felder'],['rt','Ringtausch'],['save','Spielstand']];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtHa = n => n==null ? '' : n.toLocaleString('de-DE',{minimumFractionDigits:1, maximumFractionDigits:2})+' ha';
+const fmtMoney = n => n==null ? '–' : Math.round(n).toLocaleString('de-DE')+' €';
+const cropDot = c => c ? `<span class="dot" style="background:var(--c-${c})"></span>` : '';
+const cropName = c => c ? CROPS[c].name : '';
+
+function render(){
+  document.getElementById('tabs').innerHTML = TABS.map(([k,l])=>`<button class="${state.ui.tab===k?'on':''}" data-action="tab" data-tab="${k}">${l}</button>`).join('');
+  const abs = nowAbs();
+  document.getElementById('hdrDate').textContent = `${fmtDate()} · ${pjLabel(abs)}`;
+  document.getElementById('hdrSync').textContent = state.sync ? 'Sync: '+new Date(state.sync.at).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}) : 'noch nicht synchronisiert';
+  const v = document.getElementById('view');
+  v.innerHTML = ({dash:viewDash, work:viewWork, fields:viewFields, rt:viewRt, save:viewSave}[state.ui.tab] || viewDash)();
+}
+
+function dateEditor(){
+  const g = state.game;
+  return `<div class="row" style="margin-top:10px">
+    <button class="btn small" data-action="day" data-dir="-1" title="Einen Tag zurück">◀</button>
+    <select data-action="setMonth" aria-label="Monat">${[3,4,5,6,7,8,9,10,11,12,1,2].map(m=>`<option value="${m}" ${m===g.month?'selected':''}>${MONTHS[m]}</option>`).join('')}</select>
+    <select data-action="setDay" aria-label="Tag">${Array.from({length:g.dpp},(_,i)=>`<option value="${i+1}" ${i+1===g.day?'selected':''}>T${i+1}</option>`).join('')}</select>
+    <label class="row small muted">Jahr <input type="number" min="1" value="${g.year}" data-action="setYear" aria-label="Jahr"></label>
+    <label class="row small muted">Tage/Monat <select data-action="setDpp">${[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28].map(n=>`<option ${n===g.dpp?'selected':''}>${n}</option>`).join('')}</select></label>
+    <button class="btn small" data-action="day" data-dir="1" title="Einen Tag weiter">▶</button>
+  </div>`;
+}
+
+function settingsCheck(){
+  const s = state.sync?.settings;
+  if(!s) return `<p class="muted small">Nach dem ersten Sync stehen hier die Spieleinstellungen im Vergleich zum Plan.</p>`;
+  const row = (label, cur, plan, ok) => `<tr><td>${label}</td><td>${esc(cur ?? '–')}</td><td>${esc(plan)}</td><td><span class="status ${ok?'ok':'warn'}">${ok?'passt':'umstellen'}</span></td></tr>`;
+  return `<table><tr><th>Einstellung</th><th>Spielstand</th><th>Plan</th><th></th></tr>
+    ${row('Tage je Monat', state.sync.env?.dpp, PLAN_SETTINGS.dpp, state.sync.env?.dpp===PLAN_SETTINGS.dpp)}
+    ${row('Wirtschaft', s.econ, PLAN_SETTINGS.econ, s.econ===PLAN_SETTINGS.econ)}
+    ${row('Steine', s.stones==null?null:(s.stones?'an':'aus'), 'aus', s.stones===false)}
+  </table>`;
+}
+
+function viewDash(){
+  const abs = nowAbs(), {pj} = fromAbs(abs);
+  const tasks = tasksFor(abs), pd = planDay();
+  const done = tasks.filter(isTaskDone).length;
+  const today = tasks.filter(t=>t.d[0]<=pd && t.d[1]>=pd);
+  const od = overdueTasks();
+  const sy = state.sync;
+  const warn = [];
+  if(sy?.warnings?.length) sy.warnings.forEach(w=>warn.push(`<div class="alert">${esc(w)}</div>`));
+  if(sy && Date.now()-sy.at > 1000*60*60*6) warn.push(`<div class="alert">Letzter Sync ist älter als 6 Stunden.</div>`);
+  const curCrops = pj>=1 ? cropSummary(pj) : null;
+  return `${warn.join('')}
+  <div class="grid g2">
+    <section class="card">
+      <h2>Spielstand-Datum</h2>
+      <div class="big">${MONTHS[state.game.month]} · T${state.game.day}</div>
+      <div class="muted">Ingame-Jahr ${state.game.year} · ${pjLabel(abs)}</div>
+      ${dateEditor()}
+      <p class="muted small" style="margin:8px 0 0">Wird beim Synchronisieren aus <code>environment.xml</code> übernommen. Von Hand ändern geht jederzeit.</p>
+    </section>
+    <section class="card">
+      <h2>${MONTHS[state.game.month]}: ${done} von ${tasks.length} Aufgaben erledigt</h2>
+      <div class="bar" style="margin-bottom:10px"><i style="width:${tasks.length?Math.round(done/tasks.length*100):0}%"></i></div>
+      <h3>Heute fällig (T${pd})</h3>
+      ${today.length ? today.map(t=>taskRow(t,true)).join('') : '<div class="empty">Heute steht nichts im Kalender.</div>'}
+      <div class="row" style="margin-top:8px"><button class="btn small" data-action="tab" data-tab="work">Ganzen Monat ansehen →</button></div>
+    </section>
+  </div>
+  ${od.length ? `<section class="card" style="margin-top:14px"><h2 style="color:var(--bad)">Überfällig (${od.length})</h2>${od.map(t=>taskRow(t,true,true)).join('')}</section>` : ''}
+  <div class="grid g3" style="margin-top:14px">
+    <section class="card"><h2>Betrieb</h2>
+      <dl class="kv">
+        <dt>Kontostand</dt><dd>${fmtMoney(sy?.money)}</dd>
+        <dt>Rinder</dt><dd>${sy?.animals ? sy.animals.cattle+' (Ziel 10)' : '–'}</dd>
+        <dt>Fahrzeuge</dt><dd>${sy?.vehicles ?? '–'}</dd>
+        <dt>Ackerfläche</dt><dd>${fmtHa(FIELDS.reduce((s,f)=>s+fieldHa(f),0))}</dd>
+        <dt>Ringtausch</dt><dd>${pj>=1 ? 'Feld '+rtSlot(pj).field+' ('+fmtHa(rtSlot(pj).ha)+')' : 'Feld '+state.rt[1].field+' ab Planjahr 1'}</dd>
+      </dl>
+    </section>
+    <section class="card"><h2>Spieleinstellungen</h2>${settingsCheck()}</section>
+    <section class="card"><h2>${pj>=1?'Früchte Planjahr '+pj:'Früchte Planjahr 1 (in Vorbereitung)'}</h2>
+      ${(curCrops||cropSummary(1)).map(([c,ha,ids])=>`<div class="row small" style="justify-content:space-between;padding:3px 0"><span class="chip">${cropDot(c)}${cropName(c)}</span><span class="muted">${ids.join(', ')}</span><b>${fmtHa(ha)}</b></div>`).join('')}
+    </section>
+  </div>`;
+}
+function cropSummary(pj){
+  const m = {};
+  FIELDS.forEach(f=>{ const c = cropOf(f,pj); (m[c] ||= [0,[]]); m[c][0]+=fieldHa(f); m[c][1].push(f.id); });
+  const rt = rtSlot(pj); if(rt?.field){ (m.K ||= [0,[]]); m.K[0]+=rt.ha||0; m.K[1].push('RT '+rt.field); }
+  return Object.keys(CROPS).filter(c=>m[c]).map(c=>[c, m[c][0], m[c][1]]);
+}
+
+function taskRow(t, compact=false, showMonth=false, noDay=false){
+  const [a,b] = taskProgress(t), done = a===b;
+  const pd = planDay(), isNow = t.abs===nowAbs() && t.d[0]<=pd && t.d[1]>=pd;
+  const haSum = t.fields.reduce((s,f)=>s+(f.ha||0),0);
+  const who = t.who==='LU' || t.who==='LU + selbst' ? `<span class="tag lu">${esc(t.who)}</span>` : `<span class="tag">${esc(t.who)}</span>`;
+  const place = t.targets.find(x=>x.place);
+  const chips = t.fields.map(f=>{
+    const d = isFieldDone(t,f.id);
+    return `<button class="chip ${f.rt?'rt':''} ${d?'done':''}" data-action="toggleField" data-key="${esc(t.key)}" data-fid="${f.id}" title="${f.rt?'Ringtausch-Feld':'Feld'} ${f.id}${f.crop?' · '+cropName(f.crop):''} – zum Abhaken klicken">${cropDot(f.crop)}${f.rt?'RT ':''}${f.id}${f.ha?` <span class="muted">${f.ha.toLocaleString('de-DE',{maximumFractionDigits:1})}</span>`:''}</button>`;
+  }).join('');
+  const note = state.notes[t.key];
+  const {month, year} = fromAbs(t.abs);
+  return `<div class="task ${done?'isdone':''} ${isNow?'now':''} ${noDay?'noday':''}">
+    <input type="checkbox" ${done?'checked':''} data-action="toggleTask" data-key="${esc(t.key)}" aria-label="Erledigt">
+    ${noDay?'':`<div class="day">${showMonth?MONTHS_SHORT[month]+' '+(year)+'<br>':''}${dayLabel(t.d)}</div>`}
+    <div class="body">
+      <div class="ttext">${esc(t.text)}</div>
+      <div class="meta">${noDay && t.d[0]!==t.d[1]?`<span class="tag">${dayLabel(t.d)}</span>`:''}${who}${t.frist?'<span class="tag frist">Frist</span>':''}${t.fungi?'<span class="tag fungi">Fungizid</span>':''}${place?`<span class="tag">${esc(place.place)}</span>`:''}${isAuto(t)?'<span class="tag auto">aus Spielstand</span>':''}${t.fields.length>1?`<span class="muted small">${a}/${b} Felder · ${fmtHa(haSum)}</span>`:(haSum?`<span class="muted small">${fmtHa(haSum)}</span>`:'')}
+        ${compact?'':`<button class="linkbtn" data-action="note" data-key="${esc(t.key)}">${note!=null?'Notiz':'+ Notiz'}</button>`}
+        ${t.custom && !compact?`<button class="linkbtn" data-action="delCustom" data-id="${t.custom.id}">löschen</button>`:''}</div>
+      ${t.fields.length?`<div class="chips">${chips}</div>`:''}
+      ${note!=null && !compact?`<textarea data-action="noteText" data-key="${esc(t.key)}" placeholder="Notiz…">${esc(note)}</textarea>`:''}
+      ${note && compact?`<div class="muted small" style="margin-top:4px">📝 ${esc(note)}</div>`:''}
+    </div>
+  </div>`;
+}
+
+function viewWork(){
+  const now = nowAbs();
+  let abs = state.ui.viewAbs ?? now;
+  if(abs < START_ABS) abs = START_ABS;
+  const {month, year, pj} = fromAbs(abs);
+  const tasks = tasksFor(abs);
+  const done = tasks.filter(isTaskDone).length;
+  const days = [1,2,3,4].map(d=>tasks.filter(t=>t.d[0]===d));
+  const fieldOpts = [...FIELDS.map(f=>f.id), 76, 77, ...[1,2,3,4].map(k=>state.rt[k].field)].filter((v,i,a)=>v && a.indexOf(v)===i);
+  return `<div class="monthnav">
+      <button class="btn" data-action="viewMonth" data-dir="-1" ${abs<=START_ABS?'disabled':''}>◀</button>
+      <div class="title">${MONTHS[month]} · Jahr ${year}</div>
+      <button class="btn" data-action="viewMonth" data-dir="1">▶</button>
+      ${abs!==now?'<button class="btn small" data-action="viewMonth" data-dir="0">zum aktuellen Monat</button>':'<span class="status ok">aktueller Monat</span>'}
+      <span class="muted small">${pjLabel(abs)}${pj>=1?' · Ringtausch: Feld '+rtSlot(pj).field:''}</span>
+    </div>
+    <div class="bar" style="margin-bottom:6px"><i style="width:${tasks.length?Math.round(done/tasks.length*100):0}%"></i></div>
+    <p class="muted small" style="margin:0 0 12px">${done} von ${tasks.length} erledigt. Häkchen links hakt die ganze Aufgabe ab, ein Klick auf ein Feld nur dieses Feld.</p>
+    <div class="grid g2">
+      ${days.map((ts,i)=>`<section class="card"><h2>T${i+1}${abs===now && planDay()===i+1?' <span class="status ok">heute</span>':''}</h2>${ts.length?ts.map(t=>taskRow(t,false,false,true)).join(''):'<div class="empty">Keine Aufgaben.</div>'}</section>`).join('')}
+    </div>
+    <section class="card" style="margin-top:14px">
+      <h2>Eigene Aufgabe hinzufügen</h2>
+      <form class="row" data-form="custom" style="align-items:flex-end">
+        <label class="f" style="flex:1 1 260px">Aufgabe<input type="text" name="text" required placeholder="z. B. Gülle zukaufen"></label>
+        <label class="f">Tag<select name="day">${[1,2,3,4].map(d=>`<option value="${d}">T${d}</option>`).join('')}</select></label>
+        <label class="f">Wer<select name="who"><option>selbst</option><option>LU</option><option>LU + selbst</option></select></label>
+        <label class="f">Felder (mit Komma)<input type="text" name="fields" placeholder="79, 15" list="fieldList" style="width:130px"></label>
+        <label class="f"><span><input type="checkbox" name="repeat"> jedes Jahr</span></label>
+        <button class="btn primary" type="submit">Hinzufügen</button>
+        <datalist id="fieldList">${fieldOpts.map(id=>`<option value="${id}">`).join('')}</datalist>
+      </form>
+      <p class="muted small" style="margin-bottom:0">Wird ${MONTHS[month]} Jahr ${year} zugeordnet, mit „jedes Jahr“ jedem ${MONTHS[month]}.</p>
+    </section>`;
+}
+
+function viewFields(){
+  const abs = nowAbs(), {pj} = fromAbs(abs);
+  const showPj = Math.max(1, pj);
+  const sf = state.sync?.fields || {};
+  const owned = new Set(state.sync?.ownedFarmlands || []);
+  const cell = (f,p) => { const c = cropOf(f,p); return `<td class="${p===showPj?'cur':''}"><span class="chip">${cropDot(c)}${cropName(c)}</span></td>`; };
+  const stepsHdr = [0,1,2,3].map(i=>{ const p = showPj+i; return `<th>${p===showPj?'Planjahr '+p+' (jetzt)':'Planjahr '+p}</th>`; }).join('');
+  const rows = ['A','B','C'].map(line=>{
+    const fs = FIELDS.filter(f=>f.line===line);
+    return `<tr><td colspan="9" style="background:var(--panel2);font-weight:600">${LINE_INFO[line]} · ${fmtHa(fs.reduce((s,f)=>s+fieldHa(f),0))}</td></tr>` + fs.map(f=>{
+      const info = sf[f.id];
+      return `<tr>
+        <td><b>${f.id}</b>${f.lease?' <span class="tag">Pacht</span>':''}</td>
+        <td class="num"><input type="number" step="0.01" min="0" value="${fieldHa(f)}" data-action="setHa" data-fid="${f.id}" style="width:74px" aria-label="Hektar Feld ${f.id}">${f.est && state.haOverride[f.id]==null?' <span class="muted small" title="geschätzt">*</span>':''}</td>
+        <td>${f.group}</td>
+        ${[0,1,2,3].map(i=>cell(f,showPj+i)).join('')}
+        <td class="small">${state.sync ? (owned.has(f.id)?'<span class="status ok">im Besitz</span>':'<span class="status warn">nicht im Besitz</span>') : '–'}${info?'<div class="muted">'+esc(fieldInfoText(info))+'</div>':''}</td>
+        <td class="num small">${f.dist.toLocaleString('de-DE')} km</td>
+      </tr>`;
+    }).join('');
+  }).join('');
+  return `<section class="card">
+    <h2>Felderplanung</h2>
+    <p class="muted small" style="margin-top:0">Jedes Feld rückt pro Jahr einen Schritt in seiner Linie weiter. Gruppe = Schritt in Planjahr 1. * = Größe geschätzt, im Spiel prüfen und hier eintragen. Besitz und Feldinfo kommen aus dem Sync (Farmland-Nr. = Feld-Nr. angenommen).</p>
+    <div class="tablewrap"><table>
+      <tr><th>Feld</th><th class="num">ha</th><th>Gr.</th>${stepsHdr}<th>Spielstand</th><th class="num">Hof</th></tr>
+      ${rows}
+    </table></div>
+  </section>
+  <div class="grid g2" style="margin-top:14px">
+    <section class="card"><h2>Sonstige Flächen</h2>
+      <table>${SPECIAL.map(s=>`<tr><td><b>${s.id}</b></td><td>${s.name}</td><td class="num">${fmtHa(s.ha)}</td><td>${state.sync?(owned.has(s.id)?'<span class="status ok">im Besitz</span>':'<span class="status warn">nicht im Besitz</span>'):''}</td></tr>`).join('')}</table>
+    </section>
+    <section class="card"><h2>Fläche je Frucht · Planjahr ${showPj}</h2>
+      ${cropSummary(showPj).map(([c,ha,ids])=>`<div class="row small" style="justify-content:space-between;padding:3px 0"><span class="chip">${cropDot(c)}${cropName(c)}</span><span class="muted">${ids.join(', ')}</span><b>${fmtHa(ha)}</b></div>`).join('')}
+    </section>
+  </div>`;
+}
+function fieldInfoText(info){
+  const pick = ['fruitType','plannedFruit','lastFruit','groundType','sprayLevel','limeLevel','plowLevel','weedState','stoneLevel'];
+  const parts = pick.filter(k=>info[k]!=null && info[k]!=='').map(k=>k+': '+info[k]);
+  return parts.join(' · ');
+}
+
+function viewRt(){
+  const abs = nowAbs(), {pj, month} = fromAbs(abs);
+  const owned = new Set(state.sync?.ownedFarmlands || []);
+  const npc = state.sync?.npcFarmlands || [];
+  const modHits = state.sync?.mods || [];
+  const curStep = pj>=1 ? step(pj) : 0;
+  const nextStep = step(Math.max(pj,0)+1);
+  const used = [1,2,3,4].map(k=>state.rt[k].field);
+  const slot = k => {
+    const s = state.rt[k];
+    const role = k===curStep ? '<span class="status ok">Kartoffeln in diesem Planjahr</span>' : (k===nextStep && month>=8 && month<=12 ? '<span class="status warn">wird jetzt übernommen</span>' : '');
+    const hits = modHits.flatMap(m=>m.entries.filter(e=>e.fieldIds.includes(s.field)).map(e=>({file:m.file,e})));
+    const opts = [...new Set([s.field, ...npc.filter(id=>!ownIds.has(id))])].filter(Boolean).sort((a,b)=>a-b);
+    const dup = used.filter(x=>x===s.field).length>1;
+    const ownClash = ownIds.has(s.field);
+    const pjList = [k, k+4, k+8].map(p=>'PJ '+p).join(', ');
+    return `<section class="card">
+      <h2>Rotationsjahr ${k} ${role}</h2>
+      <div class="row">
+        <label class="f">NPC-Feld
+          <select data-action="rtField" data-slot="${k}">${opts.map(id=>`<option value="${id}" ${id===s.field?'selected':''}>Feld ${id}${owned.has(id)?' (im Besitz)':''}</option>`).join('')}<option value="__other">anderes Feld…</option></select>
+        </label>
+        <label class="f">ha<input type="number" step="0.01" min="0" value="${s.ha??''}" data-action="rtHa" data-slot="${k}"></label>
+      </div>
+      ${dup?'<div class="alert bad" style="margin-top:8px">Dieses Feld ist mehreren Rotationsjahren zugeordnet.</div>':''}
+      ${ownClash?'<div class="alert bad" style="margin-top:8px">Das ist ein eigenes Feld, kein NPC-Feld.</div>':''}
+      <dl class="kv small" style="margin-top:10px">
+        <dt>Kartoffeln in</dt><dd>${pjList} …</dd>
+        <dt>Übernahme</dt><dd>${k===1?'August Ingame-Jahr 1 (nach Erntefenster der NPC-Frucht)':'Sommer Planjahr '+(k-1)+', meist August'}</dd>
+        <dt>Ablauf</dt><dd>Ölrettich nach Übernahme · April legen · Mai Fungizid · Oktober roden · November Rückgabe</dd>
+        <dt>Kosten</dt><dd>${s.ha?fmtMoney(s.ha*800):'–'} (800 €/ha)</dd>
+        <dt>Spielstand</dt><dd>${state.sync ? (owned.has(s.field)?'<span class="status ok">gehört dir gerade</span>':'<span class="status">beim NPC</span>') : '–'}</dd>
+        <dt>Mod-Daten</dt><dd>${hits.length ? hits.map(h=>`<div>${esc(h.file)}: ${esc(Object.entries(h.e.attrs).map(([a,b])=>a+'='+b).join(', '))}</div>`).join('') : (state.sync?'<span class="muted">kein Vertrag gefunden</span>':'–')}</dd>
+      </dl>
+    </section>`;
+  };
+  return `<p class="muted small" style="margin-top:0">Je Rotationsjahr des Vertrags ein NPC-Feld mit ca. 5 ha. Die Auswahl beim Sync kommt aus allen Farmlands, die nicht dir gehören. Änderungen wirken sofort auf die Arbeitsübersicht.</p>
+  <div class="grid g2">${[1,2,3,4].map(slot).join('')}</div>
+  ${npc.length?`<section class="card" style="margin-top:14px"><h2>NPC-Farmlands im Spielstand (${npc.length})</h2><p class="small muted" style="margin-top:0">${npc.filter(id=>!ownIds.has(id)).join(', ')}</p></section>`:''}`;
+}
+
+function viewSave(){
+  const s = state.sync;
+  const supported = 'showDirectoryPicker' in window;
+  return `<div class="grid g2">
+    <section class="card">
+      <h2>Spielstand-Ordner</h2>
+      <p class="small">Wähle einmal <code>Dokumente\\My Games\\FarmingSimulator2025\\savegame2</code>. Der Ordner wird nur gelesen. ${supported?'Der Browser merkt sich die Freigabe; beim nächsten Sync fragt er höchstens noch einmal nach.':'Dein Browser kann sich den Ordner nicht merken (Chrome oder Edge können das). Beim Sync wählst du den Ordner jedes Mal neu aus.'}</p>
+      <div class="row">
+        <button class="btn primary" data-action="sync">⟳ Synchronisieren</button>
+        ${supported?'<button class="btn" data-action="pickFolder">Ordner neu wählen</button>':''}
+      </div>
+      ${s?`<dl class="kv small" style="margin-top:12px">
+        <dt>Ordner</dt><dd>${esc(s.folder)}</dd>
+        <dt>Karte</dt><dd>${esc(s.settings?.mapTitle||'–')} ${s.settings?.mapId?'('+esc(s.settings.mapId)+')':''}</dd>
+        <dt>Spielstand</dt><dd>${esc(s.settings?.savegameName||'–')}</dd>
+        <dt>Betrieb</dt><dd>${esc(s.farmName||'–')}</dd>
+        <dt>Rohdaten Zeit</dt><dd>currentDay ${esc(s.env?.currentDay)} · ${esc(s.env?.dpp)} Tage/Monat${s.env?.period?' · Periode '+s.env.period:''}</dd>
+        <dt>Gelesen</dt><dd>${s.files.length} Dateien</dd>
+      </dl>`:''}
+    </section>
+    <section class="card">
+      <h2>Datum-Korrektur</h2>
+      <p class="small">Falls das Datum nach dem Sync nicht zum Spiel passt (z. B. weil der Spielstart verschoben ist), hier Monate verschieben. Wirkt ab dem nächsten Sync.</p>
+      <div class="row"><label class="row small">Monate <input type="number" value="${state.monthOffset}" data-action="setOffset"></label></div>
+      <h2 style="margin-top:16px">Sicherung</h2>
+      <p class="small">Häkchen, Notizen, eigene Aufgaben und Ringtausch-Auswahl liegen nur in diesem Browser. Sichere sie ab und zu als Datei.</p>
+      <div class="row">
+        <button class="btn" data-action="export">Als JSON sichern</button>
+        <button class="btn" data-action="import">JSON laden</button>
+        <button class="btn danger" data-action="reset">Alles zurücksetzen</button>
+      </div>
+    </section>
+  </div>
+  ${s?`<section class="card" style="margin-top:14px"><h2>Was der Sync gelesen hat</h2>
+    <div class="tablewrap"><table><tr><th>Datei</th><th class="num">Größe</th><th>Verwendet für</th></tr>
+      ${s.files.map(f=>`<tr><td>${esc(f.name)}</td><td class="num">${(f.size/1024).toLocaleString('de-DE',{maximumFractionDigits:1})} KB</td><td class="small">${esc(f.use||'')}</td></tr>`).join('')}
+    </table></div>
+    ${s.mods.length?`<h3>Mod-Daten (Ringtausch / Fruchtfolge)</h3>${s.mods.map(m=>`<details><summary>${esc(m.file)} – ${m.entries.length} Einträge mit Feldbezug</summary><pre>${esc(m.entries.slice(0,200).map(e=>'<'+e.tag+' '+Object.entries(e.attrs).map(([a,b])=>a+'="'+b+'"').join(' ')+'>').join('\n'))}</pre><pre>${esc(m.head)}</pre></details>`).join('')}`:'<p class="muted small">Keine Mod-Datei für Ringtausch gefunden.</p>'}
+  </section>`:''}`;
+}
+
+/* =====================================================================
+   Aktionen
+   ===================================================================== */
+function findTask(key){
+  const abs = parseInt(key.split('|')[0],10);
+  return tasksFor(abs).find(t=>t.key===key);
+}
+function setDone(task, fid, val, auto=false){
+  const k = doneKey(task,fid);
+  if(val) state.done[k] = {at:Date.now(), ...(auto?{auto:true}:{})}; else delete state.done[k];
+}
+function stepDay(dir){
+  const g = state.game;
+  let abs = nowAbs(), day = g.day + dir;
+  if(day > g.dpp){ day = 1; abs++; }
+  if(day < 1){ day = g.dpp; abs--; }
+  const f = fromAbs(abs);
+  Object.assign(g, {day, month:f.month, year:Math.max(1,f.year)});
+}
+
+document.addEventListener('click', e=>{
+  const el = e.target.closest('[data-action]');
+  if(!el || el.tagName==='SELECT' || (el.tagName==='INPUT' && el.type!=='checkbox')) return;
+  const a = el.dataset.action;
+  if(a==='tab'){ state.ui.tab = el.dataset.tab; if(el.dataset.tab==='work') state.ui.viewAbs = null; save(); render(); window.scrollTo(0,0); }
+  else if(a==='sync') doSync(false);
+  else if(a==='pickFolder') doSync(true);
+  else if(a==='day'){ stepDay(+el.dataset.dir); save(); render(); }
+  else if(a==='viewMonth'){ const d = +el.dataset.dir; state.ui.viewAbs = d===0 ? null : Math.max(START_ABS, (state.ui.viewAbs ?? nowAbs()) + d); save(); render(); }
+  else if(a==='toggleTask'){ const t = findTask(el.dataset.key); if(!t) return; const val = !isTaskDone(t); if(t.fields.length) t.fields.forEach(f=>setDone(t,f.id,val)); else setDone(t,null,val); save(); render(); }
+  else if(a==='toggleField'){ const t = findTask(el.dataset.key); if(!t) return; const fid = +el.dataset.fid; setDone(t, fid, !isFieldDone(t,fid)); save(); render(); }
+  else if(a==='note'){ const k = el.dataset.key; if(state.notes[k]==null) state.notes[k] = ''; else if(!state.notes[k]) delete state.notes[k]; save(); render(); }
+  else if(a==='delCustom'){ if(confirm('Eigene Aufgabe löschen?')){ state.custom = state.custom.filter(c=>c.id!==el.dataset.id); save(); render(); } }
+  else if(a==='export') exportJson();
+  else if(a==='import') document.getElementById('importInput').click();
+  else if(a==='reset'){ if(confirm('Alle Häkchen, Notizen, eigenen Aufgaben und Einstellungen löschen?')){ state = defaultState(); save(); render(); } }
+});
+document.addEventListener('change', e=>{
+  const el = e.target, a = el.dataset.action; if(!a) return;
+  const g = state.game;
+  if(a==='setMonth'){ g.month = +el.value; }
+  else if(a==='setDay'){ g.day = +el.value; }
+  else if(a==='setYear'){ g.year = Math.max(1, parseInt(el.value,10)||1); }
+  else if(a==='setDpp'){ g.dpp = +el.value; g.day = Math.min(g.day, g.dpp); }
+  else if(a==='setOffset'){ state.monthOffset = parseInt(el.value,10)||0; }
+  else if(a==='setHa'){ const v = parseFloat(el.value); const f = fieldById(+el.dataset.fid); if(isNaN(v) || v===f.ha) delete state.haOverride[f.id]; else state.haOverride[f.id] = v; }
+  else if(a==='rtField'){
+    let v = el.value;
+    if(v==='__other'){ v = prompt('Nummer des NPC-Felds:'); if(!v){ render(); return; } }
+    const id = parseInt(v,10); if(!id){ render(); return; }
+    const s = state.rt[el.dataset.slot]; s.field = id;
+    const def = Object.values(RT_DEFAULT).find(d=>d.field===id); s.ha = def ? def.ha : (state.sync?.farmlandHa?.[id] ?? s.ha);
+  }
+  else if(a==='rtHa'){ state.rt[el.dataset.slot].ha = parseFloat(el.value)||null; }
+  else return;
+  save(); render();
+});
+document.addEventListener('input', e=>{
+  const el = e.target; if(el.dataset.action==='noteText'){ state.notes[el.dataset.key] = el.value; save(); }
+});
+document.addEventListener('submit', e=>{
+  const f = e.target; if(f.dataset.form!=='custom') return;
+  e.preventDefault();
+  const fd = new FormData(f);
+  const abs = state.ui.viewAbs ?? nowAbs();
+  const {month} = fromAbs(abs);
+  const fields = String(fd.get('fields')||'').split(/[,;\s]+/).map(x=>parseInt(x,10)).filter(Boolean);
+  state.custom.push({id:Date.now().toString(36), abs, month, day:+fd.get('day'), text:String(fd.get('text')).trim(), who:fd.get('who'), fields, repeat:!!fd.get('repeat')});
+  save(); render(); toast('Aufgabe hinzugefügt');
+});
+document.getElementById('importInput').addEventListener('change', async e=>{
+  const file = e.target.files[0]; if(!file) return;
+  try{ const s = JSON.parse(await file.text()); if(s.v!==1) throw 0; state = Object.assign(defaultState(), s); save(); render(); toast('Daten geladen'); }
+  catch(err){ toast('Die Datei ist keine gültige Sicherung.'); }
+  e.target.value='';
+});
+function exportJson(){
+  const blob = new Blob([JSON.stringify(state,null,1)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `hof-koprek-${new Date().toISOString().slice(0,10)}.json`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+let toastTimer;
+function toast(msg){
+  let t = document.querySelector('.toast'); if(!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); }
+  t.textContent = msg; clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.remove(), 3500);
+}
+
+/* =====================================================================
+   Synchronisieren: Ordnerzugriff + XML lesen
+   ===================================================================== */
+const idb = {
+  open(){ return new Promise((res,rej)=>{ const r = indexedDB.open('ls25-manager',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
+  async get(k){ try{ const db = await this.open(); return await new Promise(res=>{ const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>res(null); }); }catch(e){ return null; } },
+  async set(k,v){ try{ const db = await this.open(); await new Promise(res=>{ const t = db.transaction('kv','readwrite'); t.objectStore('kv').put(v,k); t.oncomplete=res; t.onerror=res; }); }catch(e){} },
+};
+
+async function doSync(forcePick){
+  try{
+    if(!('showDirectoryPicker' in window)){ document.getElementById('dirInput').click(); return; }
+    let dir = forcePick ? null : await idb.get('dir');
+    if(dir){
+      let p = await dir.queryPermission({mode:'read'});
+      if(p!=='granted') p = await dir.requestPermission({mode:'read'});
+      if(p!=='granted') dir = null;
+    }
+    if(!dir){
+      dir = await window.showDirectoryPicker({id:'ls25-savegame', mode:'read', startIn:'documents'});
+      await idb.set('dir', dir);
+    }
+    const files = [];
+    for await (const [name, h] of dir.entries()){
+      if(h.kind==='file' && /\.xml$/i.test(name)){ const f = await h.getFile(); files.push({name, size:f.size, text: await f.text()}); }
+    }
+    ingest(dir.name, files);
+  }catch(err){
+    if(err && err.name==='AbortError') return;
+    console.error(err); toast('Sync fehlgeschlagen: '+(err.message||err));
+  }
+}
+document.getElementById('dirInput').addEventListener('change', async e=>{
+  const list = [...e.target.files].filter(f=>/\.xml$/i.test(f.name) && f.webkitRelativePath.split('/').length===2);
+  const folder = list[0]?.webkitRelativePath.split('/')[0] || 'Ordner';
+  const files = await Promise.all(list.map(async f=>({name:f.name, size:f.size, text:await f.text()})));
+  e.target.value=''; ingest(folder, files);
+});
+
+const parseXml = txt => { const d = new DOMParser().parseFromString(txt, 'application/xml'); return d.getElementsByTagName('parsererror').length ? null : d; };
+const firstText = (doc, tags) => { for(const t of tags){ const el = doc.getElementsByTagName(t)[0]; if(el && el.textContent.trim()!=='') return el.textContent.trim(); } return null; };
+const num = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+const bool = v => v==null ? null : /^(true|1|yes|on)$/i.test(String(v).trim());
+function econName(v){
+  if(v==null) return null;
+  const s = String(v).trim().toUpperCase();
+  return ({'1':'Einfach','EASY':'Einfach','2':'Normal','NORMAL':'Normal','3':'Schwer','HARD':'Schwer'})[s] || v;
+}
+
+function ingest(folder, files){
+  const byName = {}; files.forEach(f=>byName[f.name.toLowerCase()] = f);
+  const use = (name, what) => { const f = byName[name]; if(f) f.use = (f.use?f.use+', ':'')+what; };
+  const warnings = [];
+  if(!byName['careersavegame.xml']){ toast('In diesem Ordner liegt keine careerSavegame.xml – ist das ein Spielstand-Ordner?'); return; }
+  const out = {at:Date.now(), folder, files:[], settings:{}, env:{}, money:null, farmName:null, ownedFarmlands:[], npcFarmlands:[], fields:{}, animals:null, vehicles:null, placeables:[], mods:[], warnings};
+
+  // careerSavegame.xml
+  const cs = parseXml(byName['careersavegame.xml'].text);
+  if(cs){
+    out.settings = {
+      savegameName: firstText(cs,['savegameName']),
+      mapTitle: firstText(cs,['mapTitle']),
+      mapId: firstText(cs,['mapId']),
+      econ: econName(firstText(cs,['economicDifficulty','difficulty'])),
+      stones: bool(firstText(cs,['stonesEnabled'])),
+      plannedDpp: num(firstText(cs,['plannedDaysPerPeriod'])),
+    };
+    out.money = num(firstText(cs,['money']));
+    use('careersavegame.xml','Einstellungen, Karte');
+    const map = (out.settings.mapId||'')+' '+(out.settings.mapTitle||'');
+    if(map.trim() && !/mittellandkanal|MLK/i.test(map)) warnings.push(`Dieser Spielstand gehört zur Karte „${out.settings.mapTitle||out.settings.mapId}“, nicht zu Am Mittellandkanal. Richtig ist savegame2.`);
+  }
+
+  // environment.xml → Datum
+  if(byName['environment.xml']){
+    const env = parseXml(byName['environment.xml'].text);
+    if(env){
+      const currentDay = num(firstText(env,['currentDay']));
+      const dpp = num(firstText(env,['daysPerPeriod'])) || out.settings.plannedDpp || 1;
+      const period = num(firstText(env,['currentPeriod']));
+      out.env = {currentDay, dpp, period};
+      if(currentDay!=null){
+        const d0 = currentDay-1;
+        let year = Math.floor(d0/(dpp*12))+1;
+        let per = period || (Math.floor(d0/dpp)%12)+1;   // 1 = März
+        const day = (d0 % dpp)+1;
+        let month = (per+1)%12+1;
+        if(state.monthOffset){
+          const abs = toAbs(year, month) + state.monthOffset; const f = fromAbs(abs); month = f.month; year = Math.max(1,f.year);
+        }
+        state.game = {year, month, day, dpp};
+        use('environment.xml','Datum (Monat, Tag, Jahr)');
+      }
+    }
+  } else warnings.push('environment.xml fehlt – Datum nicht gelesen.');
+
+  // farms.xml
+  if(byName['farms.xml']){
+    const d = parseXml(byName['farms.xml'].text);
+    const farm = d && [...d.getElementsByTagName('farm')].find(f=>f.getAttribute('farmId')==='1');
+    if(farm){ out.farmName = farm.getAttribute('name'); const m = num(farm.getAttribute('money')); if(m!=null) out.money = m; use('farms.xml','Betrieb, Kontostand'); }
+  }
+
+  // farmland.xml
+  if(byName['farmland.xml']){
+    const d = parseXml(byName['farmland.xml'].text);
+    if(d){
+      [...d.getElementsByTagName('farmland')].forEach(fl=>{
+        const id = parseInt(fl.getAttribute('id'),10), farm = fl.getAttribute('farmId');
+        if(!id) return;
+        if(farm==='1') out.ownedFarmlands.push(id); else if(farm==='0' || farm==null) out.npcFarmlands.push(id);
+      });
+      use('farmland.xml','Besitz der Felder, NPC-Felder');
+    }
+  }
+
+  // fields.xml
+  if(byName['fields.xml']){
+    const d = parseXml(byName['fields.xml'].text);
+    if(d){
+      [...d.getElementsByTagName('field')].forEach(el=>{
+        const id = parseInt(el.getAttribute('id'),10); if(!id) return;
+        const attrs = {}; [...el.attributes].forEach(a=>{ if(a.name!=='id') attrs[a.name] = a.value; });
+        [...el.children].forEach(c=>{ if(!c.children.length && c.textContent.trim()) attrs[c.tagName] = c.textContent.trim(); });
+        out.fields[id] = attrs;
+      });
+      use('fields.xml','Feldinfos');
+    }
+  }
+
+  // placeables.xml → Tiere, Silo
+  if(byName['placeables.xml']){
+    const d = parseXml(byName['placeables.xml'].text);
+    if(d){
+      let cattle = 0, total = 0;
+      [...d.getElementsByTagName('placeable')].forEach(p=>{
+        if(p.getAttribute('farmId')!=='1') return;
+        const fn = p.getAttribute('filename')||''; out.placeables.push(fn.split('/').pop());
+        [...p.getElementsByTagName('animal')].forEach(a=>{
+          const n = num(a.getAttribute('numAnimals')) ?? 1;
+          const type = (a.getAttribute('subType')||a.getAttribute('type')||'')+' '+fn;
+          total += n; if(/cow|angus|cattle|rind|kuh/i.test(type)) cattle += n;
+        });
+      });
+      out.animals = {cattle, total};
+      use('placeables.xml','Gebäude, Tiere');
+    }
+  }
+
+  // vehicles.xml
+  if(byName['vehicles.xml']){
+    const d = parseXml(byName['vehicles.xml'].text);
+    if(d){ out.vehicles = [...d.getElementsByTagName('vehicle')].filter(v=>!v.getAttribute('farmId') || v.getAttribute('farmId')==='1').length; use('vehicles.xml','Anzahl Fahrzeuge'); }
+  }
+
+  // Mod-Dateien: alles mit Feld-/Farmland-Bezug
+  files.forEach(f=>{
+    const n = f.name.toLowerCase();
+    if(!/leas|pacht|ringtausch|rotation|croprot|fruchtfolge/.test(n)) return;
+    const d = parseXml(f.text); if(!d) return;
+    const entries = [];
+    d.querySelectorAll('*').forEach(el=>{
+      const attrs = {}; [...el.attributes].forEach(a=>attrs[a.name]=a.value);
+      el.childNodes.forEach && [...el.children].forEach(c=>{ if(!c.children.length && c.textContent.trim().length<40) attrs[c.tagName] = c.textContent.trim(); });
+      const ids = [];
+      Object.entries(attrs).forEach(([k,v])=>{ if(/^(farmland|field)(_?id|index|no|nr)?$/i.test(k) || /(farmland|field)(_?id)$/i.test(k)) { const x = parseInt(v,10); if(x) ids.push(x); } });
+      if(!ids.length && /field|farmland|lease|contract/i.test(el.tagName) && attrs.id){ const x = parseInt(attrs.id,10); if(x) ids.push(x); }
+      if(ids.length) entries.push({tag:el.tagName, attrs, fieldIds:[...new Set(ids)]});
+    });
+    out.mods.push({file:f.name, entries, head:f.text.slice(0,1500)});
+    f.use = /leas|pacht|ringtausch/.test(n) ? 'Ringtausch-Verträge (Mod)' : 'Fruchtfolge (Mod)';
+  });
+
+  out.files = files.map(f=>({name:f.name, size:f.size, use:f.use||''})).sort((a,b)=>(b.use?1:0)-(a.use?1:0) || a.name.localeCompare(b.name));
+  state.sync = out;
+  applyAutoDone();
+  state.ui.viewAbs = null;
+  save(); render();
+  toast(`Synchronisiert: ${fmtDate()}`);
+}
+
+/* Erledigtes aus dem Spielstand ableiten (nur setzen, nie löschen) */
+function applyAutoDone(){
+  const s = state.sync; if(!s) return;
+  const owned = new Set(s.ownedFarmlands);
+  const modIds = new Set(s.mods.filter(m=>/leas|pacht|ringtausch/i.test(m.file)).flatMap(m=>m.entries.flatMap(e=>e.fieldIds)));
+  const now = nowAbs(), {month} = fromAbs(now);
+  for(let a = START_ABS; a <= now; a++){
+    tasksFor(a).forEach(t=>{
+      const mark = fid => { if(!isFieldDone(t,fid)) setDone(t,fid,true,true); };
+      if(t.auto==='settings' && s.env?.dpp===PLAN_SETTINGS.dpp && s.settings.econ===PLAN_SETTINGS.econ && s.settings.stones===false) mark(null);
+      if(t.auto==='cattle' && (s.animals?.cattle||0) >= 10) mark(null);
+      const sameSeason = fromAbs(a).sy===fromAbs(now).sy;
+      if(t.auto==='silo' && s.placeables.some(p=>/bunker/i.test(p))) t.fields.forEach(f=>mark(f.id));
+      if(t.auto==='contracts') t.fields.forEach(f=>{ if(modIds.has(f.id)) mark(f.id); });
+      if(t.auto==='rtTakeover' && sameSeason) t.fields.forEach(f=>{ if(owned.has(f.id)) mark(f.id); });
+      if(t.auto==='rtReturn' && sameSeason && month>=11) t.fields.forEach(f=>{ if(!owned.has(f.id)) mark(f.id); });
+    });
+  }
+}
+
+// Für Tests
+window.__ls25 = {ingest, tasksFor, fromAbs, toAbs, get state(){return state;}};
+render();
+</script>
+</body>
+</html>
