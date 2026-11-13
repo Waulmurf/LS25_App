@@ -42,6 +42,10 @@ Aus dem Spielstand hakt die App automatisch ab:
 
 Was der Spieler selbst abgehakt hat, überschreibt der Sync nie.
 
+Den Ringtausch-Mod liest die App nicht aus. Die Verträge (Rotationsjahr 1–4) hakst du deshalb selbst ab. Ob ein Ringtausch-Feld gerade dir gehört, liest die App aus `farmland.xml` (farmId 1). Daraus erkennt sie Übernahme und Rückgabe.
+
+Alle Spielstand-Dateien beginnen mit einem unsichtbaren BOM-Zeichen. Die App entfernt es vor dem Einlesen.
+
 Was die App nicht erkennen kann: Saat, Ernte und Spritzungen stehen nicht in den XML-Dateien. Sie liegen in den Dichtekarten (.gdm). Diese Arbeiten hakst du von Hand ab.
 
 ## Daten

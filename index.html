@@ -293,7 +293,10 @@ const toAbs = (year, month) => (year-1)*12 + mIdx(month);
 const fromAbs = abs => { const sy = Math.floor(abs/12)+1, mi = ((abs%12)+12)%12; const month = (mi+2)%12+1; return {sy, month, year: sy, pj: month<=2 ? sy : sy-1}; };
 const step = pj => (((pj-1)%4)+4)%4+1;
 const nowAbs = () => toAbs(state.game.year, state.game.month);
-const planDay = () => { const {day,dpp} = state.game; return dpp===4 ? day : Math.min(4, Math.max(1, Math.ceil(day*4/dpp))); };
+// Welche Plantage (T1–T4) der aktuelle Spieltag abdeckt. Bei 1 Tag je Monat: T1–T4.
+const dayWindow = () => { const {day,dpp} = state.game; const lo = Math.min(4, Math.floor((day-1)*4/dpp)+1), hi = Math.min(4, Math.max(lo, Math.ceil(day*4/dpp))); return [lo,hi]; };
+const planDay = () => dayWindow()[0];
+const isToday = t => { const [lo,hi] = dayWindow(); return t.abs===nowAbs() && t.d[0]<=hi && t.d[1]>=lo; };
 const dayLabel = d => d[0]===d[1] ? 'T'+d[0] : 'T'+d[0]+'–'+d[1];
 const fmtDate = (g=state.game) => `${MONTHS[g.month]} · T${g.day}${g.dpp!==4?'/'+g.dpp:''} · Jahr ${g.year}`;
 function pjLabel(abs){
@@ -369,7 +372,7 @@ function isAuto(task){
 function overdueTasks(){
   const now = nowAbs(), pd = planDay(), out = [];
   for(let a = START_ABS; a <= now; a++){
-    tasksFor(a).forEach(t=>{ if(isTaskDone(t)) return; if(a<now || t.d[1] < pd) out.push(t); });
+    tasksFor(a).forEach(t=>{ if(isTaskDone(t)) return; if(a<now || t.d[1] < pd) out.push(t); });  // pd = erster Plantag von heute
   }
   return out;
 }
@@ -420,7 +423,8 @@ function viewDash(){
   const abs = nowAbs(), {pj} = fromAbs(abs);
   const tasks = tasksFor(abs), pd = planDay();
   const done = tasks.filter(isTaskDone).length;
-  const today = tasks.filter(t=>t.d[0]<=pd && t.d[1]>=pd);
+  const today = tasks.filter(isToday);
+  const [lo,hi] = dayWindow();
   const od = overdueTasks();
   const sy = state.sync;
   const warn = [];
@@ -439,13 +443,13 @@ function viewDash(){
     <section class="card">
       <h2>${MONTHS[state.game.month]}: ${done} von ${tasks.length} Aufgaben erledigt</h2>
       <div class="bar" style="margin-bottom:10px"><i style="width:${tasks.length?Math.round(done/tasks.length*100):0}%"></i></div>
-      <h3>Heute fällig (T${pd})</h3>
+      <h3>Heute fällig (${lo===hi?'T'+lo:'T'+lo+'–'+hi})</h3>
       ${today.length ? today.map(t=>taskRow(t,true)).join('') : '<div class="empty">Heute steht nichts im Kalender.</div>'}
       <div class="row" style="margin-top:8px"><button class="btn small" data-action="tab" data-tab="work">Ganzen Monat ansehen →</button></div>
     </section>
   </div>
   ${od.length ? `<section class="card" style="margin-top:14px"><h2 style="color:var(--bad)">Überfällig (${od.length})</h2>${od.map(t=>taskRow(t,true,true)).join('')}</section>` : ''}
-  <div class="grid g3" style="margin-top:14px">
+  <div class="grid g2" style="margin-top:14px">
     <section class="card"><h2>Betrieb</h2>
       <dl class="kv">
         <dt>Kontostand</dt><dd>${fmtMoney(sy?.money)}</dd>
@@ -456,10 +460,19 @@ function viewDash(){
       </dl>
     </section>
     <section class="card"><h2>Spieleinstellungen</h2>${settingsCheck()}</section>
+    <section class="card"><h2>Lagerbestand</h2>${stockList()}</section>
     <section class="card"><h2>${pj>=1?'Früchte Planjahr '+pj:'Früchte Planjahr 1 (in Vorbereitung)'}</h2>
       ${(curCrops||cropSummary(1)).map(([c,ha,ids])=>`<div class="row small" style="justify-content:space-between;padding:3px 0"><span class="chip">${cropDot(c)}${cropName(c)}</span><span class="muted">${ids.join(', ')}</span><b>${fmtHa(ha)}</b></div>`).join('')}
     </section>
   </div>`;
+}
+const FILL_DE = {POTATO:'Kartoffeln', WHEAT:'Weizen', RYE:'Roggen', SUGARBEET:'Zuckerrüben', SUGARBEET_CUT:'Rübenschnitzel', SILAGE:'Silage', CHAFF:'Häckselgut', MAIZE:'Mais', PEA:'Erbsen', PEAS:'Erbsen', ONION:'Zwiebeln', DRYGRASS_WINDROW:'Heu', GRASS_WINDROW:'Gras', STRAW:'Stroh', LIQUIDMANURE:'Gülle', MANURE:'Mist', FORAGE:'TMR', FERTILIZER:'Dünger', LIQUIDFERTILIZER:'Flüssigdünger', LIME:'Kalk', HERBICIDE:'Herbizid', FUNGICIDE:'Fungizid', SEEDS:'Saatgut', DIESEL:'Diesel', DEF:'AdBlue', WATER:'Wasser', MILK:'Milch', OILSEEDRADISH:'Ölrettich'};
+function stockList(){
+  const st = state.sync?.stock;
+  if(!st) return '<p class="muted small">Kommt beim Sync aus den Lagern deines Betriebs (placeables.xml).</p>';
+  const rows = Object.entries(st).sort((a,b)=>b[1]-a[1]);
+  if(!rows.length) return '<p class="muted small">Alle Lager sind leer.</p>';
+  return '<table>'+rows.map(([ft,l])=>`<tr><td>${esc(FILL_DE[ft]||ft)}</td><td class="num">${Math.round(l).toLocaleString('de-DE')} l</td></tr>`).join('')+'</table>';
 }
 function cropSummary(pj){
   const m = {};
@@ -470,7 +483,7 @@ function cropSummary(pj){
 
 function taskRow(t, compact=false, showMonth=false, noDay=false){
   const [a,b] = taskProgress(t), done = a===b;
-  const pd = planDay(), isNow = t.abs===nowAbs() && t.d[0]<=pd && t.d[1]>=pd;
+  const isNow = isToday(t);
   const haSum = t.fields.reduce((s,f)=>s+(f.ha||0),0);
   const who = t.who==='LU' || t.who==='LU + selbst' ? `<span class="tag lu">${esc(t.who)}</span>` : `<span class="tag">${esc(t.who)}</span>`;
   const place = t.targets.find(x=>x.place);
@@ -514,7 +527,7 @@ function viewWork(){
     <div class="bar" style="margin-bottom:6px"><i style="width:${tasks.length?Math.round(done/tasks.length*100):0}%"></i></div>
     <p class="muted small" style="margin:0 0 12px">${done} von ${tasks.length} erledigt. Häkchen links hakt die ganze Aufgabe ab, ein Klick auf ein Feld nur dieses Feld.</p>
     <div class="grid g2">
-      ${days.map((ts,i)=>`<section class="card"><h2>T${i+1}${abs===now && planDay()===i+1?' <span class="status ok">heute</span>':''}</h2>${ts.length?ts.map(t=>taskRow(t,false,false,true)).join(''):'<div class="empty">Keine Aufgaben.</div>'}</section>`).join('')}
+      ${days.map((ts,i)=>`<section class="card"><h2>T${i+1}${abs===now && dayWindow()[0]<=i+1 && dayWindow()[1]>=i+1?' <span class="status ok">heute</span>':''}</h2>${ts.length?ts.map(t=>taskRow(t,false,false,true)).join(''):'<div class="empty">Keine Aufgaben.</div>'}</section>`).join('')}
     </div>
     <section class="card" style="margin-top:14px">
       <h2>Eigene Aufgabe hinzufügen</h2>
@@ -784,7 +797,7 @@ document.getElementById('dirInput').addEventListener('change', async e=>{
   e.target.value=''; ingest(folder, files);
 });
 
-const parseXml = txt => { const d = new DOMParser().parseFromString(txt, 'application/xml'); return d.getElementsByTagName('parsererror').length ? null : d; };
+const parseXml = txt => { const d = new DOMParser().parseFromString(String(txt).replace(/^\uFEFF/,'').trimStart(), 'application/xml'); return d.getElementsByTagName('parsererror').length ? null : d; };
 const firstText = (doc, tags) => { for(const t of tags){ const el = doc.getElementsByTagName(t)[0]; if(el && el.textContent.trim()!=='') return el.textContent.trim(); } return null; };
 const num = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
 const bool = v => v==null ? null : /^(true|1|yes|on)$/i.test(String(v).trim());
@@ -879,10 +892,15 @@ function ingest(folder, files){
   if(byName['placeables.xml']){
     const d = parseXml(byName['placeables.xml'].text);
     if(d){
-      let cattle = 0, total = 0;
+      let cattle = 0, total = 0; const stock = {};
       [...d.getElementsByTagName('placeable')].forEach(p=>{
         if(p.getAttribute('farmId')!=='1') return;
-        const fn = p.getAttribute('filename')||''; out.placeables.push(fn.split('/').pop());
+        const fn = p.getAttribute('filename')||''; out.placeables.push((p.getAttribute('modName')||'')+'/'+fn.split('/').pop());
+        p.querySelectorAll('[fillType][fillLevel]').forEach(n=>{
+          if(n.closest('husbandryMeadow')) return;
+          const ft = n.getAttribute('fillType'), lvl = num(n.getAttribute('fillLevel'));
+          if(ft && lvl>0) stock[ft] = (stock[ft]||0) + lvl;
+        });
         [...p.getElementsByTagName('animal')].forEach(a=>{
           const n = num(a.getAttribute('numAnimals')) ?? 1;
           const type = (a.getAttribute('subType')||a.getAttribute('type')||'')+' '+fn;
@@ -890,7 +908,8 @@ function ingest(folder, files){
         });
       });
       out.animals = {cattle, total};
-      use('placeables.xml','Gebäude, Tiere');
+      out.stock = stock;
+      use('placeables.xml','Gebäude, Tiere, Lagerbestände');
     }
   }
 
@@ -938,7 +957,7 @@ function applyAutoDone(){
       if(t.auto==='settings' && s.env?.dpp===PLAN_SETTINGS.dpp && s.settings.econ===PLAN_SETTINGS.econ && s.settings.stones===false) mark(null);
       if(t.auto==='cattle' && (s.animals?.cattle||0) >= 10) mark(null);
       const sameSeason = fromAbs(a).sy===fromAbs(now).sy;
-      if(t.auto==='silo' && s.placeables.some(p=>/bunker/i.test(p))) t.fields.forEach(f=>mark(f.id));
+      if(t.auto==='silo' && s.placeables.some(p=>/bunker.?silo/i.test(p))) t.fields.forEach(f=>mark(f.id));
       if(t.auto==='contracts') t.fields.forEach(f=>{ if(modIds.has(f.id)) mark(f.id); });
       if(t.auto==='rtTakeover' && sameSeason) t.fields.forEach(f=>{ if(owned.has(f.id)) mark(f.id); });
       if(t.auto==='rtReturn' && sameSeason && month>=11) t.fields.forEach(f=>{ if(!owned.has(f.id)) mark(f.id); });
