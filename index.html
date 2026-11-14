@@ -187,7 +187,7 @@ const START_ABS = 5; // Saisonjahr 1, August
    place          Ort ohne Feld (Stall, Lager) */
 const T = (id,m,d,text,sel,who='selbst',x={}) => Object.assign({id,m,d,text,sel,who},x);
 const CALENDAR = [
-  T('jan-verkauf',1,[2,2],'Zwiebeln, Weizen, Roggen verkaufen (Preishoch im Januar), Futterroggen zurückhalten',{place:'Lager'},'selbst',{skipPj1:true}),
+  T('jan-verkauf',1,[2,2],'Zwiebeln, Weizen, Roggen verkaufen (Preishoch im Januar), Futterroggen zurückhalten',{place:'Lager'}),
   T('jan-werkstatt',1,[3,4],'Werkstatt; Saatgut, Dünger, Herbizid und Fungizid einlagern',null),
   T('feb-pflanzgut',2,[2,2],'Pflanzkartoffeln in 2.000-l-Kisten bereitstellen',{place:'Lager'}),
   T('feb-bodenproben',2,[3,3],'Bodenproben (Precision Farming) auf allen Frühjahrsfeldern',{cur:['K','ZR','SM','E','Z'],rt:'cur'}),
@@ -236,25 +236,42 @@ const CALENDAR = [
   T('dez-wechsel',12,[3,3],'Jahreswechsel: Planjahr +1, Plan im Fruchtfolge-Menü prüfen',null),
 ];
 const FEEDING = T('fuetterung',0,[1,1],'Fütterung und Einstreu',{place:'Stall'});
-// Startphase August–Dezember Ingame-Jahr 1: Selektoren beziehen sich auf Planjahr 1
+// Bestand im Spielstand August Ingame-Jahr 1 (laut Nils, 14.11.2026): alles reif außer Rübe 72
+const Y1 = {79:'WR',15:'WR',88:'WR', 7:'WW',73:'WW',126:'WW', 27:'E',74:'E', 80:'K',20:'K',82:'K', 78:'Z',90:'Z', 71:'SM', 72:'ZR'};
+const Y1_STATE = {72:'Stufe greenBig, noch nicht reif', 80:'gedämmt', 20:'gedämmt', 82:'gedämmt', 71:'häckselreif'};
+// Startphase August–Dezember Ingame-Jahr 1. y1 = Frucht, die jetzt steht; cur = Frucht in Planjahr 1
 const START = [
   T('s-einstellungen',8,[1,1],'Spieleinstellungen: 4 Tage je Monat, Wirtschaft Schwer, Steine aus',null,'selbst',{auto:'settings'}),
-  T('s-felder',8,[1,1],'Ackerfelder leeren: keine Frucht, gegrubbert, unkrautfrei, kein Dünger',{allOwn:true}),
-  T('s-planer',8,[1,1],'„Realistische Fruchtfolge“: je Feld 4-Jahres-Plan + Ölrettich eintragen, alte Historie prüfen',{allOwn:true}),
   T('s-vertraege',8,[1,1],'Ringtausch-Verträge abschließen (Rotationsjahr 1–4)',{rtAll:true},'selbst',{auto:'contracts'}),
-  T('s-rinder',8,[1,1],'10 Angus-Rinder kaufen; bis zur ersten Ernte Silage, Getreide, Stroh zukaufen',{place:'Stall'},'selbst',{auto:'cattle'}),
-  T('s-oel-k',8,[2,2],'Grubbern, Ölrettich säen (vor Kartoffel)',{cur:['K']}),
+  T('s-rinder',8,[1,1],'10 Angus-Rinder kaufen; Silage bis zur Maisernte zukaufen',{place:'Stall'},'selbst',{auto:'cattle'}),
+  T('s-drusch-ro',8,[1,1],'Roggen dreschen; auf 79 rund 1 ha Stroh liegen lassen',{y1:['WR']},'LU',{frist:true}),
+  T('s-drusch-ww',8,[1,2],'Winterweizen dreschen',{y1:['WW']},'LU',{frist:true}),
+  T('s-zwiebel',8,[1,2],'Zwiebeln roden, in 2.000-l-Kisten einlagern',{y1:['Z']}),
+  T('s-stroh',8,[2,2],'Stroh pressen (Kleinballen, ca. 36.000 l Einstreu) und einfahren',{fixed:[79],y1crop:true}),
+  T('s-oel-k',8,[2,2],'Direkt nach dem Drusch: grubbern, Ölrettich säen (vor Kartoffel)',{y1:['WR'],showNext:true}),
+  T('s-kartoffel',8,[2,4],'Kartoffeln roden in die Kartoffelhalle; rund 65.000 l als Pflanzgut für Planjahr 1 zurückhalten',{y1:['K']}),
   T('s-heu',8,[2,4],'Grünland mähen und als Heu pressen (Wintervorrat)',{fixed:[77]}),
   T('s-rt1',8,[2,3],'Ringtausch-Feld nach Übernahme grubbern, Ölrettich säen',{rt:'cur'},'selbst',{auto:'rtTakeover'}),
-  T('s-oel-z-e',8,[3,3],'Grubbern, Ölrettich säen (vor Zwiebel und Erbse)',{cur:['Z','E']}),
-  T('s-oel-zr-sm',8,[4,4],'Grubbern, Ölrettich säen (vor Rübe und Mais)',{cur:['ZR','SM']}),
-  T('s-kalk',9,[1,1],'Kalk auf Felder mit Kalkstufe 0 (88 erst nach der Kartoffel)',{fixed:[27,72,74,82]}),
+  T('s-oel-ww',8,[3,3],'Direkt nach dem Drusch: grubbern, Ölrettich säen (vor Zwiebel, Erbse, Rübe)',{y1:['WW'],showNext:true}),
+  T('s-getreide',8,[3,3],'Weizen verkaufen; rund 17.500 l Roggen als Futter behalten, Rest verkaufen',{place:'Lager'}),
+  T('s-planer',8,[3,3],'„Realistische Fruchtfolge“: je Feld 4-Jahres-Plan + Ölrettich eintragen, Historie (Jahr 1) prüfen',{allOwn:true}),
+  T('s-erbse',8,[4,4],'Erbsen dreschen und verkaufen (Felder müssen bis zur Herbstsaat frei sein)',{y1:['E']},'LU'),
+  T('s-ruebe-stehen',8,[4,4],'Zuckerrübe stehen lassen (noch nicht reif), Rodung im Oktober',{y1:['ZR']},'–'),
+  T('s-kalk',9,[1,1],'Kalk auf Felder mit Kalkstufe 0 (88 erst nach der Kartoffel, 72 im Februar)',{fixed:[27,74,82]}),
+  T('s-rodung',9,[1,1],'Kartoffelrodung abschließen, damit der Weizen noch im September kommt',{y1:['K']},'selbst',{frist:true}),
+  T('s-silo',9,[1,1],'Fahrsilo am Hof bauen (BunkerSiloModularSet), vor dem Maishäckseln',{fixed:[76]},'selbst',{auto:'silo'}),
   T('s-weizen',9,[2,2],'Grubbern + Winterweizen säen',{cur:['WW']}),
+  T('s-mais',9,[2,2],'Silomais häckseln; abfahren, Silo walzen und abdecken',{y1:['SM']},'LU + selbst'),
   T('s-roggen',9,[3,3],'Grubbern + Winterroggen säen',{cur:['WR']}),
+  T('s-oel-sm',9,[3,3],'Maisstoppel grubbern, Ölrettich säen (vor Erbse)',{y1:['SM'],showNext:true}),
   T('s-restsaat',10,[1,1],'Rest-Saat Weizen/Roggen (letzter Saatmonat)',null,'selbst',{frist:true}),
   T('s-herb-fung',10,[2,2],'Herbizid, danach Fungizid vorbeugend aufs Wintergetreide',{cur:['WW','WR']},'selbst',{fungi:true}),
-  T('s-silo',10,[3,3],'Fahrsilo am Hof bauen (BunkerSiloModularSet)',{fixed:[76]},'selbst',{auto:'silo'}),
-  T('s-pflanzgut',12,[2,2],'Pflanzgut kaufen: rund 65.000 l für 18 ha (ca. 33 Kisten à 2.000 l)',{place:'Lager'}),
+  T('s-ruebe',10,[2,4],'Zuckerrüben roden und abfahren (spätestens November)',{y1:['ZR']},'LU'),
+  T('s-guelle',10,[4,4],'Gülle vor dem Winter auf Ölrettich',{nextSpring0:true,rt:'cur'}),
+  T('s-stoppel',11,[2,2],'Rübenstoppel grubbern (kein Ölrettich, zu spät)',{y1:['ZR'],showNext:true}),
+  T('s-herde',11,[4,4],'Herde prüfen: Kälber verkaufen oder als Nachzucht behalten',{place:'Stall'}),
+  T('s-verkauf',12,[2,2],'Kartoffeln (ohne Pflanzgut) und Rüben verkaufen (Preishoch im Dezember)',{place:'Lager'}),
+  T('s-pflanzgut',12,[3,3],'Pflanzgut prüfen: 65.000 l in Kisten? Fehlmenge zukaufen',{place:'Lager'}),
 ];
 
 /* =====================================================================
@@ -319,7 +336,9 @@ function resolveSel(sel, pj){
   if(!sel) return [];
   if(sel.place) return [{place:sel.place}];
   const out = [];
-  if(sel.fixed) sel.fixed.forEach(id=>{ const f = fieldById(id) || SPECIAL.find(s=>s.id===id); out.push({id, ha: f ? (fieldById(id)?fieldHa(f):f.ha) : null, crop: f && f.line ? cropOf(f,pj) : null}); });
+  if(sel.fixed) sel.fixed.forEach(id=>{ const f = fieldById(id) || SPECIAL.find(s=>s.id===id); out.push({id, ha: f ? (fieldById(id)?fieldHa(f):f.ha) : null, crop: f && f.line ? (sel.y1crop ? Y1[id] : cropOf(f,pj)) : null}); });
+  if(sel.y1) FIELDS.filter(f=>sel.y1.includes(Y1[f.id])).forEach(f=>out.push({id:f.id, ha:fieldHa(f), crop: sel.showNext ? cropOf(f,1) : Y1[f.id]}));
+  if(sel.nextSpring0) FIELDS.filter(f=>CROPS[cropOf(f,1)].spring && Y1[f.id]!=='ZR').forEach(f=>out.push({id:f.id, ha:fieldHa(f), crop:cropOf(f,1)}));
   if(sel.allOwn) FIELDS.forEach(f=>out.push({id:f.id, ha:fieldHa(f), crop:cropOf(f,pj)}));
   if(sel.cur || sel.next || sel.nextSpring){
     let list = FIELDS.slice();
@@ -342,7 +361,7 @@ function tasksFor(abs){
   const list = [];
   if(sy===1 && month>=8){
     START.filter(t=>t.m===month).forEach(t=>list.push(mk(t, abs, resolveSel(t.sel, 1))));
-    if(month>=9) list.push(mk(Object.assign({},FEEDING,{m:month}), abs, resolveSel(FEEDING.sel,1)));
+    list.push(mk(Object.assign({},FEEDING,{m:month}), abs, resolveSel(FEEDING.sel,1)));
   } else {
     list.push(mk(Object.assign({},FEEDING,{m:month}), abs, resolveSel(FEEDING.sel,pj)));
     CALENDAR.filter(t=>t.m===month && !(t.skipPj1 && pj===1)).forEach(t=>list.push(mk(t, abs, resolveSel(t.sel, pj))));
@@ -413,7 +432,7 @@ function settingsCheck(){
   if(!s) return `<p class="muted small">Nach dem ersten Sync stehen hier die Spieleinstellungen im Vergleich zum Plan.</p>`;
   const row = (label, cur, plan, ok) => `<tr><td>${label}</td><td>${esc(cur ?? '–')}</td><td>${esc(plan)}</td><td><span class="status ${ok?'ok':'warn'}">${ok?'passt':'umstellen'}</span></td></tr>`;
   return `<table><tr><th>Einstellung</th><th>Spielstand</th><th>Plan</th><th></th></tr>
-    ${row('Tage je Monat', state.sync.env?.dpp, PLAN_SETTINGS.dpp, state.sync.env?.dpp===PLAN_SETTINGS.dpp)}
+    ${(()=>{ const d = s.plannedDpp ?? state.sync.env?.dpp; const pending = s.plannedDpp && state.sync.env?.dpp && s.plannedDpp!==state.sync.env.dpp; return row('Tage je Monat', d+(pending?' (aktiv: '+state.sync.env.dpp+', ab Monatswechsel '+d+')':''), PLAN_SETTINGS.dpp, d===PLAN_SETTINGS.dpp); })()}
     ${row('Wirtschaft', s.econ, PLAN_SETTINGS.econ, s.econ===PLAN_SETTINGS.econ)}
     ${row('Steine', s.stones==null?null:(s.stones?'an':'aus'), 'aus', s.stones===false)}
   </table>`;
@@ -550,15 +569,17 @@ function viewFields(){
   const sf = state.sync?.fields || {};
   const owned = new Set(state.sync?.ownedFarmlands || []);
   const cell = (f,p) => { const c = cropOf(f,p); return `<td class="${p===showPj?'cur':''}"><span class="chip">${cropDot(c)}${cropName(c)}</span></td>`; };
+  const y1col = pj < 1;
   const stepsHdr = [0,1,2,3].map(i=>{ const p = showPj+i; return `<th>${p===showPj?'Planjahr '+p+' (jetzt)':'Planjahr '+p}</th>`; }).join('');
   const rows = ['A','B','C'].map(line=>{
     const fs = FIELDS.filter(f=>f.line===line);
-    return `<tr><td colspan="9" style="background:var(--panel2);font-weight:600">${LINE_INFO[line]} · ${fmtHa(fs.reduce((s,f)=>s+fieldHa(f),0))}</td></tr>` + fs.map(f=>{
+    return `<tr><td colspan="${y1col?10:9}" style="background:var(--panel2);font-weight:600">${LINE_INFO[line]} · ${fmtHa(fs.reduce((s,f)=>s+fieldHa(f),0))}</td></tr>` + fs.map(f=>{
       const info = sf[f.id];
       return `<tr>
         <td><b>${f.id}</b>${f.lease?' <span class="tag">Pacht</span>':''}</td>
         <td class="num"><input type="number" step="0.01" min="0" value="${fieldHa(f)}" data-action="setHa" data-fid="${f.id}" style="width:74px" aria-label="Hektar Feld ${f.id}">${f.est && state.haOverride[f.id]==null?' <span class="muted small" title="geschätzt">*</span>':''}</td>
         <td>${f.group}</td>
+        ${y1col?`<td><span class="chip">${cropDot(Y1[f.id])}${cropName(Y1[f.id])}</span>${Y1_STATE[f.id]?'<div class="muted small">'+esc(Y1_STATE[f.id])+'</div>':''}</td>`:''}
         ${[0,1,2,3].map(i=>cell(f,showPj+i)).join('')}
         <td class="small">${state.sync ? (owned.has(f.id)?'<span class="status ok">im Besitz</span>':'<span class="status warn">nicht im Besitz</span>') : '–'}${info?'<div class="muted">'+esc(fieldInfoText(info))+'</div>':''}</td>
         <td class="num small">${f.dist.toLocaleString('de-DE')} km</td>
@@ -569,7 +590,7 @@ function viewFields(){
     <h2>Felderplanung</h2>
     <p class="muted small" style="margin-top:0">Jedes Feld rückt pro Jahr einen Schritt in seiner Linie weiter. Gruppe = Schritt in Planjahr 1. * = Größe geschätzt, im Spiel prüfen und hier eintragen. Besitz und Feldinfo kommen aus dem Sync (Farmland-Nr. = Feld-Nr. angenommen).</p>
     <div class="tablewrap"><table>
-      <tr><th>Feld</th><th class="num">ha</th><th>Gr.</th>${stepsHdr}<th>Spielstand</th><th class="num">Hof</th></tr>
+      <tr><th>Feld</th><th class="num">ha</th><th>Gr.</th>${y1col?'<th>steht jetzt (Jahr 1)</th>':''}${stepsHdr}<th>Spielstand</th><th class="num">Hof</th></tr>
       ${rows}
     </table></div>
   </section>
@@ -954,7 +975,7 @@ function applyAutoDone(){
   for(let a = START_ABS; a <= now; a++){
     tasksFor(a).forEach(t=>{
       const mark = fid => { if(!isFieldDone(t,fid)) setDone(t,fid,true,true); };
-      if(t.auto==='settings' && s.env?.dpp===PLAN_SETTINGS.dpp && s.settings.econ===PLAN_SETTINGS.econ && s.settings.stones===false) mark(null);
+      if(t.auto==='settings' && (s.settings.plannedDpp ?? s.env?.dpp)===PLAN_SETTINGS.dpp && s.settings.econ===PLAN_SETTINGS.econ && s.settings.stones===false) mark(null);
       if(t.auto==='cattle' && (s.animals?.cattle||0) >= 10) mark(null);
       const sameSeason = fromAbs(a).sy===fromAbs(now).sy;
       if(t.auto==='silo' && s.placeables.some(p=>/bunker.?silo/i.test(p))) t.fields.forEach(f=>mark(f.id));
